@@ -1,1 +1,6 @@
 rootProject.name = 'ReactivePersistence'
+
+
+include "super-application"
+include "external-service"
+

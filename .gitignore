@@ -1,5 +1,9 @@
 .gradle
 /build/
+external-service/build/
+external-service/out/
+super-application/build/
+super-application/out/
 !gradle/wrapper/gradle-wrapper.jar
 
 ### STS ###

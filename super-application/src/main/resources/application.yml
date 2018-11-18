@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+logging:
+  level:
+    "org.coinen.reactive.persistence": "DEBUG"
+
+
+#management:
+#  server:
+#    port: 8090
+#  endpoints:
+#    web:
+#      exposure.include: "*"
+#  endpoint:
+#    health:
+#      show-details: "always"
+#      cache:
+#        time-to-live: 10s

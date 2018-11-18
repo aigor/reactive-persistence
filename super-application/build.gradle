@@ -17,7 +17,7 @@ apply plugin: 'io.spring.dependency-management'
 
 group = 'org.coinen.reactive.persistence'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 
 repositories {
 	mavenCentral()
@@ -29,12 +29,22 @@ ext {
 }
 
 dependencies {
+	// Core
 	implementation('org.springframework.boot:spring-boot-starter-actuator')
-	implementation('org.springframework.boot:spring-boot-starter-data-cassandra-reactive')
-	implementation('org.springframework.boot:spring-boot-starter-data-mongodb-reactive')
 	implementation('org.springframework.boot:spring-boot-starter-webflux')
+
+	// Persistence
+	//implementation('org.springframework.boot:spring-boot-starter-data-cassandra-reactive')
+	//implementation('org.springframework.boot:spring-boot-starter-data-mongodb-reactive')
+	//implementation('org.springframework.boot:spring-boot-starter-data-couchbase-reactive')
+
+	// Monitoring
 	implementation('de.codecentric:spring-boot-admin-starter-server')
+
+	// Compilation helper
 	compileOnly('org.projectlombok:lombok')
+
+	// Testsing
 	testImplementation('org.springframework.boot:spring-boot-starter-test')
 	testImplementation('io.projectreactor:reactor-test')
 }

@@ -1,0 +1,38 @@
+version: '2.3'
+
+services:
+  postgres:
+    image: "postgres:11.1"
+    hostname: "postgres"
+    environment:
+      POSTGRES_DB: application
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - "./postgres:/docker-entrypoint-initdb.d"
+    mem_limit: 512M
+
+  mongo:
+    image: "mongo:4.0.4"
+    hostname: "mongo"
+    environment:
+      MONGO_INITDB_DATABASE: application
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+    ports:
+      - 27017:27017
+    volumes:
+      - "./mongo:/docker-entrypoint-initdb.d"
+    mem_limit: 512M
+
+  cassandra:
+    image: "cassandra:3.11.3"
+    hostname: "cassandra"
+    ports:
+      - 9042:9042
+    volumes:
+      - "./cassandra/db-init.sh:/cassandra-init.sh"
+    command: "sh /cassandra-init.sh"
+    mem_limit: 3072M
