@@ -56,7 +56,7 @@
 </div>
 
 <script>
-    const timout = 5000;
+    const timout = 500;
 
     var active_colors = { };
     var active_pins = { };
@@ -150,15 +150,11 @@
                 }).done(function (rsp) {
                     // Actual processing of response
                     const colorSchema = rsp['colorSchema'];
-
                     const colorValue = rsp['colorValue'];
+
+                    setRegionColorWithSchema(colorSchema, code, colorValue);
+
                     const pinValue = rsp['pinValue'];
-
-                    const value = 256 - Number(colorValue / 5).toFixed(0);
-                    let color = fullColorHex(0, value, 0);
-                    console.log("Color: " + color);
-
-                    setRegionColor(code, color);
                     if (pinValue != null) {
                         setRegionPin(code, pinValue);
                     }
@@ -167,6 +163,28 @@
         });
 
         return vMap
+    }
+
+    function setRegionColorWithSchema(colorSchema, code, colorValue) {
+        let finalColor;
+        // simple blue-red colors
+        if (colorSchema === 'temperature') {
+            if (colorValue > -1 && colorValue < 1) {
+                finalColor = fullColorHex(255, 255, 255);
+            }
+            if (colorValue < 0) {
+                const value = Number(-colorValue * 10).toFixed(0);
+                finalColor = fullColorHex(20, 50, 255 - value);
+            } else {
+                const value = Number(colorValue * 10).toFixed(0);
+                finalColor = fullColorHex(255 - value, 50, 20);
+            }
+        } else {
+            const value = 256 - Number(colorValue / 5).toFixed(0);
+            finalColor = fullColorHex(0, value, 0);
+        }
+        console.log(colorSchema, code, finalColor);
+        setRegionColor(code, finalColor);
     }
 
     function updateStatus(status) {

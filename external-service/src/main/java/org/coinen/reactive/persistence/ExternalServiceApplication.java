@@ -14,8 +14,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static java.time.Duration.ofMillis;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
@@ -85,6 +89,15 @@ public class ExternalServiceApplication {
 	@Value
 	public static class StatisticsDto {
 		private static Random rnd = new Random();
+		private static Map<String, ResourceBundle> studyData = new HashMap<>();
+
+		static {
+			Stream.of(
+				"uk-sync",
+				"uk-async"
+			).forEach(study ->
+				studyData.put(study, ResourceBundle.getBundle(study)));
+		}
 
 		private final double value;
 
@@ -94,6 +107,11 @@ public class ExternalServiceApplication {
 
 		static StatisticsDto forExperiment(String study, String region) {
 			log.info("Experiment: {}, region: {}", study, region);
+			if (studyData.containsKey(study)) {
+				var studyData = StatisticsDto.studyData.get(study);
+				var temp = Double.parseDouble(studyData.getString(region));
+				return new StatisticsDto(temp);
+			}
 			return random();
 		}
 	}

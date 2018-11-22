@@ -98,9 +98,10 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 
 	private StudyResult getFinalStudyResult(String study, String region, ExternalStudyDto externalStudyDto) {
 		if ("uk-sync".equals(study) || "uk-async".equals(study)) {
-			return new StudyResult("blue", externalStudyDto.getValue(), null);
+			return new StudyResult("temperature", externalStudyDto.getValue(), null);
 		} else {
-			return new StudyResult("blue", externalStudyDto.getValue(), region);
+			// TODO: Make some DB request
+			return new StudyResult("green", externalStudyDto.getValue(), region);
 		}
 	}
 
