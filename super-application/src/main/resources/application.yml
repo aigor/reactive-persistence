@@ -1,6 +1,5 @@
 server:
   port: 8080
-
 logging:
   level:
     "org.coinen.reactive.persistence": "DEBUG"

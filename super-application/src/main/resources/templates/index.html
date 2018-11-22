@@ -6,11 +6,192 @@
           content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+
+    <!-- External styles -->
+    <link href="js/app.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+
+    <!-- JQVMap -->
+    <link href="js/jqvmap.css" media="screen" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="js/jquery.vmap.js"></script>
+    <script type="text/javascript" src="js/maps/jquery.vmap.world.js"></script>
+    <script type="text/javascript" src="js/maps/jquery.vmap.europe.js"></script>
+    <script type="text/javascript" src="js/maps/jquery.vmap.ukraine.js"></script>
+    <script type="text/javascript" src="js/maps/jquery.vmap.usa.js"></script>
+    <script type="text/javascript" src="js/maps/jquery.vmap.usa.counties.js"></script>
+    <script type="text/javascript" src="js/maps/jquery.vmap.usa.districts.js"></script>
+    <!-- JQVMap -->
+
     <title>Reactive Persistence</title>
 </head>
-<body>
-<div>
-    Hello App!
+<body style="margin: 0; font-family: Verdana; font-size: small; background-color: #a5bfdd;">
+
+<div class="status-block" style="background-color: lightgray; padding: 0em 1em 1em 1em; margin: 0;">
+    <div>
+        <select id="scenario" onchange="selectScenario(this)">
+            <option value="uk-sync">Ukraine: weather (Sync)</option>
+            <option value="uk-async">Ukraine: weather (Async)</option>
+            <option value="world-gdp">World: GDP/pop (Mongo)</option>
+            <option value="usa-votes-jdbc">USA: 2016 votes (JDBC)</option>
+            <option value="usa-votes-r2dbc">USA: 2016 votes (R2DBC)</option>
+        </select>
+    </div>
+    <div>
+        <p style="padding-left: 2em;">thread pool usage:</p>
+    </div>
+    <div class="pool-status w3-green">
+        <div id="pool-usage-progress" class="w3-red w3-center" style="width:0">
+            <a id="pool-usage" style="padding-left: 16px;">0/0</a>
+        </div>
+    </div>
+    <div class="pool-queue">
+        <p>active req: <a id="active-req">0</a>, queued: <a id="pool-queue-size">0</a>,
+            ext service req: <a id="external-service-req">0</a></p>
+    </div>
 </div>
+
+<div id="vmap-container" align="center">
+    <div id="vmap" style="width: 1440px; height: 740px;"></div>
+</div>
+
+<script>
+    const timout = 5000;
+
+    var active_colors = { };
+    var active_pins = { };
+
+    var vMap = initVectorMap('ukraine_ua', false, timout, true);
+
+    function selectScenario(scenario) {
+        // Available maps:
+        // 'world_en',
+        // 'usa_counties_en',
+        // 'usa_en',
+        // 'usa_districts_en',
+        // 'europe_en',
+
+        let newScenario = scenario.value;
+        console.log("New scenario selected: " + newScenario);
+
+        if (newScenario === "uk-sync") {
+            vMap = initVectorMap('ukraine_ua', false, timout, false);
+        } else if (newScenario === "uk-async") {
+            vMap = initVectorMap('ukraine_ua', true, timout, false);
+        } else if (newScenario === "usa-votes-jdbc" || newScenario === "usa-votes-r2dbc") {
+            vMap = initVectorMap('usa_districts_en', true, timout, false);
+        } else {
+            vMap = initVectorMap('world_en', true, timout, false);
+        }
+    }
+
+    const rgbToHex = function (rgb) {
+        let hex = Number(rgb).toString(16);
+        if (hex.length < 2) {
+            hex = "0" + hex;
+        }
+        return hex;
+    };
+
+    const fullColorHex = function (r, g, b) {
+        return '#' + rgbToHex(r) + rgbToHex(g) + rgbToHex(b);
+    };
+
+    function setRegionColor(code, color) {
+        active_colors[code] = color;
+        vMap.vectorMap('set', 'colors', active_colors);
+    }
+
+    function setRegionPin(code, text) {
+        active_pins[code] = text;
+        vMap.vectorMap('placePins', active_pins, 'content');
+    }
+
+    function initVectorMap(mapName, async, timeout, firstInit) {
+        active_colors = { };
+        active_pins = { };
+
+        let vMap = jQuery('#vmap');
+
+        if (!firstInit) {
+            vMap.vectorMap('set', 'colors', active_colors);
+            vMap.vectorMap('placePins', active_pins, 'content');
+            vMap.off();
+            vMap.empty();
+        }
+
+        const waitingColor = '#cccccc';
+        vMap.vectorMap({
+            map: mapName,
+            backgroundColor: '#a5bfdd',
+            hoverOpacity: 0.7,
+
+            selectedColor: waitingColor,
+
+            borderColor: '#818181',
+            borderOpacity: 0.25,
+            borderWidth: 1,
+
+            enableZoom: false,
+            showTooltip: true,
+            //values: sample_data,
+            //scaleColors: ['#00AA00', '#FF0000'],
+            normalizeFunction: 'linear',
+
+            onRegionClick: function (element, code, region) {
+                console.log("Selected region: " + region);
+
+                setRegionColor(code, waitingColor);
+
+                const srvUrl = (async ? "nio/" : "") + "service/" + timeout;
+                jQuery.ajax({
+                    url: srvUrl,
+                    method: "GET"
+                }).done(function (rsp) {
+                    // Actual processing of response
+                    const value = 256 - Number(rsp['value'] / 5).toFixed(0);
+                    let color = fullColorHex(0, value, 0);
+                    console.log("Color: " + color);
+
+                    setRegionColor(code, color);
+                    //setRegionPin(code, Number(rsp['value']).toFixed(1));
+                });
+            }
+        });
+
+        return vMap
+    }
+
+    function updateStatus(status) {
+        let used = status['poolUsed'];
+        let size = status['poolSize'];
+        let percents = used * 100 / size;
+
+        jQuery("#pool-usage")
+            .text("" + used + "/" + size);
+        jQuery("#pool-usage-progress")
+            .css("width", "" + percents + "%");
+        jQuery("#pool-queue-size")
+            .text(status['poolQueueSize']);
+        jQuery("#active-req")
+            .text(status['activeRequests']);
+        jQuery("#external-service-req")
+            .text(status['externalServiceActiveRequests']);
+    }
+
+    if (!!window.EventSource) {
+        const eventSource = new EventSource("/status");
+        window.onbeforeunload = function(){
+            eventSource.close();
+        };
+        eventSource.onmessage = function (e) {
+            const event = JSON.parse(e.data);
+            updateStatus(event);
+        };
+    } else {
+        console.warn('Your browser does not support Server-Sent Events');
+    }
+</script>
+
 </body>
 </html>

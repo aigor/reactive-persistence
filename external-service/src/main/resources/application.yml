@@ -1,2 +1,6 @@
 server:
   port: 9090
+
+logging:
+  level:
+    "org.coinen.reactive.persistence": "DEBUG"
