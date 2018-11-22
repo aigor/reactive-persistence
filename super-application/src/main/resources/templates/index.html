@@ -143,18 +143,25 @@
 
                 setRegionColor(code, waitingColor);
 
-                const srvUrl = (async ? "nio/" : "") + "service/" + mapName + "/" + code + "?q=" + timeout;
+                const srvUrl = (async ? "nio/" : "") + "service/" + mapName + "/" + code + "?timeout=" + timeout;
                 jQuery.ajax({
                     url: srvUrl,
                     method: "GET"
                 }).done(function (rsp) {
                     // Actual processing of response
-                    const value = 256 - Number(rsp['value'] / 5).toFixed(0);
+                    const colorSchema = rsp['colorSchema'];
+
+                    const colorValue = rsp['colorValue'];
+                    const pinValue = rsp['pinValue'];
+
+                    const value = 256 - Number(colorValue / 5).toFixed(0);
                     let color = fullColorHex(0, value, 0);
                     console.log("Color: " + color);
 
                     setRegionColor(code, color);
-                    //setRegionPin(code, Number(rsp['value']).toFixed(1));
+                    if (pinValue != null) {
+                        setRegionPin(code, pinValue);
+                    }
                 });
             }
         });

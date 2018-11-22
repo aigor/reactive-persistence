@@ -1,4 +1,4 @@
-package org.coinen.reactive.persistence;
+package org.coinen.reactive.persistence.external;
 
 import lombok.Data;
 

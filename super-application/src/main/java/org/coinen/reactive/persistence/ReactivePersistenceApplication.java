@@ -1,6 +1,8 @@
 package org.coinen.reactive.persistence;
 
 import lombok.extern.slf4j.Slf4j;
+import org.coinen.reactive.persistence.external.ExternalServiceStatusDto;
+import org.coinen.reactive.persistence.external.ExternalStudyDto;
 import org.coinen.reactive.persistence.utils.AppSchedulers;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -63,12 +65,12 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 				GET("/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
-					.body(processRequestBlocking(request), String.class)
+					.body(processRequestBlocking(request), StudyResult.class)
 			).andRoute(
 				GET("/nio/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
-					.body(processRequestReactive(request), String.class)
+					.body(processRequestReactive(request), StudyResult.class)
             ).andRoute(
                 GET("/status"),
                 request -> ok()
@@ -97,38 +99,53 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
             .doOnError(e -> log.warn("Error on status", e));
     }
 
-    private Mono<String> processRequestBlocking(ServerRequest request) {
+    private Mono<StudyResult> processRequestBlocking(ServerRequest request) {
+		String study = request.pathVariable("study");
+		String region = request.pathVariable("region");
+		String timeout = request.queryParam("timeout").orElse(null);
+
 		return Mono.fromCallable(
 			() -> {
 				Instant start = now();
 				log.info("Starting external call");
 				HttpRequest req = HttpRequest.newBuilder()
-					.uri(externalServiceUri(request))
+					.uri(externalServiceUri(study, region, timeout))
 					.build();
 
 				HttpResponse<String> response = httpClient
 					.send(req, HttpResponse.BodyHandlers.ofString());
 				log.info("External call finished in {}", between(start, now()));
-				return response.body();
+				ExternalStudyDto externalStudyDto = ExternalStudyDto.fromString(response.body());
+				return getFinalStudyResult(study, region, externalStudyDto);
 			})
 			.publishOn(ioScheduler)
 			.doOnSubscribe(s -> activeIncomingRequests.incrementAndGet())
 			.doFinally(s -> activeIncomingRequests.decrementAndGet());
 	}
 
-	private Mono<String> processRequestReactive(ServerRequest request) {
+	private Mono<StudyResult> processRequestReactive(ServerRequest request) {
+		String study = request.pathVariable("study");
+		String region = request.pathVariable("region");
+		String timeout = request.queryParam("timeout").orElse(null);
+
 		return webClient
 			.get()
-			.uri(externalServiceUri(request))
+			.uri(externalServiceUri(study, region, timeout))
 			.exchange()
-			.flatMap(rsp -> rsp.bodyToMono(String.class))
+			.flatMap(rsp -> rsp.bodyToMono(String.class)
+				.map(ExternalStudyDto::fromString)
+				.map(external ->
+					getFinalStudyResult(study, region, external)))
             .doOnSubscribe(s -> activeIncomingRequests.incrementAndGet())
             .doFinally(s -> activeIncomingRequests.decrementAndGet());
 	}
 
+	private StudyResult getFinalStudyResult(String study, String region, ExternalStudyDto externalStudyDto) {
+		return new StudyResult("blue", externalStudyDto.getValue(), region);
+	}
+
 	@Override
 	public void run(String... args) {
-		// TODO: Expose as SSE endpoint & show on UI
 		Flux.interval(Duration.ofSeconds(1))
 			.doOnEach(i -> log.debug("[{} status] active req: {}, run/max: {}/{}, queued tasks: {}",
 				IO_WORKER,
@@ -139,15 +156,13 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 			.subscribe();
 	}
 
-	private URI externalServiceUri(ServerRequest request) {
+	private URI externalServiceUri(String study, String region, String timeout) {
 		return URI.create(
 			EXTERNAL_SERVICE +
 				"/service/" +
-				request.pathVariable("study") + "/" +
-				request.pathVariable("region") +
-				request.queryParam("timeout")
-						.map(t -> "?timeout=" + t)
-						.orElse("")
+				study + "/" +
+				region +
+				(timeout != null ? "?timeout=" + timeout : "")
 		);
 	}
 }
