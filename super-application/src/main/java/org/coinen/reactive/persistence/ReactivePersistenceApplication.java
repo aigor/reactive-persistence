@@ -60,12 +60,12 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 					"index",
 					Rendering.view("index"))
 			).andRoute(
-				GET("/service/{timeout}"),
+				GET("/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
 					.body(processRequestBlocking(request), String.class)
 			).andRoute(
-				GET("/nio/service/{timeout}"),
+				GET("/nio/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
 					.body(processRequestReactive(request), String.class)
@@ -140,6 +140,14 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 	}
 
 	private URI externalServiceUri(ServerRequest request) {
-		return URI.create(EXTERNAL_SERVICE + "/service/" + request.pathVariable("timeout"));
+		return URI.create(
+			EXTERNAL_SERVICE +
+				"/service/" +
+				request.pathVariable("study") + "/" +
+				request.pathVariable("region") +
+				request.queryParam("timeout")
+						.map(t -> "?timeout=" + t)
+						.orElse("")
+		);
 	}
 }

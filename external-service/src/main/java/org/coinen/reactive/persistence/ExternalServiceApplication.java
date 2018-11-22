@@ -17,7 +17,6 @@ import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.Integer.parseInt;
 import static java.time.Duration.ofMillis;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
@@ -40,12 +39,15 @@ public class ExternalServiceApplication {
 	public RouterFunction<ServerResponse> routerFunction() {
 		return RouterFunctions
 			.route(
-				GET("/service/{timeout}"),
+				GET("/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
 					.body(
 						Mono.delay(getDelay(request))
-							.map(__ -> PriceDto.random())
+							.map(__ -> StatisticsDto
+								.forExperiment(
+									request.pathVariable("study"),
+									request.pathVariable("region")))
 							.doOnSubscribe(__ -> {
 								activeRequests.incrementAndGet();
 								log.debug("Starting request processing");
@@ -54,7 +56,7 @@ public class ExternalServiceApplication {
 								activeRequests.decrementAndGet();
 								log.debug("Request processing finished");
 							}),
-						PriceDto.class)
+						StatisticsDto.class)
 			).andRoute(
 				GET("/status"),
 				request -> ok()
@@ -68,22 +70,31 @@ public class ExternalServiceApplication {
 			.map(__ -> new AppStatusDto(activeRequests.get()));
 	}
 
-	private Duration getDelay(ServerRequest req) {
+	private Duration getDelay(ServerRequest request) {
 		try {
-			return ofMillis(parseInt(req.pathVariable("timeout")));
+			return ofMillis(
+				request
+					.queryParam("timeout")
+					.map(Integer::parseInt)
+					.orElse(DEFAULT_TIMEOUT));
 		} catch (Exception e) {
 			return ofMillis(DEFAULT_TIMEOUT);
 		}
 	}
 
 	@Value
-	public static class PriceDto {
+	public static class StatisticsDto {
 		private static Random rnd = new Random();
 
 		private final double value;
 
-		static PriceDto random() {
-			return new PriceDto(rnd.nextDouble() * 1000);
+		static StatisticsDto random() {
+			return new StatisticsDto(rnd.nextDouble() * 1000);
+		}
+
+		static StatisticsDto forExperiment(String study, String region) {
+			log.info("Experiment: {}, region: {}", study, region);
+			return random();
 		}
 	}
 
