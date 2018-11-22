@@ -61,7 +61,7 @@
     var active_colors = { };
     var active_pins = { };
 
-    var vMap = initVectorMap('ukraine_ua', false, timout, true);
+    var vMap = initVectorMap('uk-sync', 'ukraine_ua', false, timout, true);
 
     function selectScenario(scenario) {
         // Available maps:
@@ -74,14 +74,14 @@
         let newScenario = scenario.value;
         console.log("New scenario selected: " + newScenario);
 
-        if (newScenario === "uk-sync") {
-            vMap = initVectorMap('ukraine_ua', false, timout, false);
+        if (newScenario === 'uk-sync') {
+            vMap = initVectorMap(newScenario, 'ukraine_ua', false, timout, false);
         } else if (newScenario === "uk-async") {
-            vMap = initVectorMap('ukraine_ua', true, timout, false);
+            vMap = initVectorMap(newScenario, 'ukraine_ua', true, timout, false);
         } else if (newScenario === "usa-votes-jdbc" || newScenario === "usa-votes-r2dbc") {
-            vMap = initVectorMap('usa_districts_en', true, timout, false);
+            vMap = initVectorMap(newScenario, 'usa_districts_en', true, timout, false);
         } else {
-            vMap = initVectorMap('world_en', true, timout, false);
+            vMap = initVectorMap(newScenario, 'world_en', true, timout, false);
         }
     }
 
@@ -107,7 +107,7 @@
         vMap.vectorMap('placePins', active_pins, 'content');
     }
 
-    function initVectorMap(mapName, async, timeout, firstInit) {
+    function initVectorMap(study, mapName, async, timeout, firstInit) {
         active_colors = { };
         active_pins = { };
 
@@ -143,7 +143,7 @@
 
                 setRegionColor(code, waitingColor);
 
-                const srvUrl = (async ? "nio/" : "") + "service/" + mapName + "/" + code + "?timeout=" + timeout;
+                const srvUrl = (async ? "nio/" : "") + "service/" + study + "/" + code + "?timeout=" + timeout;
                 jQuery.ajax({
                     url: srvUrl,
                     method: "GET"

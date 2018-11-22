@@ -1,7 +1,7 @@
 package org.coinen.reactive.persistence;
 
 import lombok.extern.slf4j.Slf4j;
-import org.coinen.reactive.persistence.external.ExternalServiceStatusDto;
+import org.coinen.reactive.persistence.external.ExternalService;
 import org.coinen.reactive.persistence.external.ExternalStudyDto;
 import org.coinen.reactive.persistence.utils.AppSchedulers;
 import org.springframework.boot.CommandLineRunner;
@@ -13,24 +13,18 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
-import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.time.Duration.between;
-import static java.time.Instant.now;
+import static org.coinen.reactive.persistence.utils.Utils.parseRequest;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.RouterFunctions.resources;
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
@@ -39,13 +33,14 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 @SpringBootApplication
 public class ReactivePersistenceApplication implements CommandLineRunner {
 	private static final String IO_WORKER = "ioWorker";
-	private static final String EXTERNAL_SERVICE = "http://localhost:9090";
 
 	private final ThreadPoolExecutor executor = AppSchedulers.newExecutor(IO_WORKER, 4);
 	private final Scheduler ioScheduler = Schedulers.fromExecutor(executor);
 
-	private final HttpClient httpClient = HttpClient.newBuilder().build();
-	private final WebClient webClient = WebClient.builder().build();
+	private final ExternalService externalService = new ExternalService(
+		HttpClient.newBuilder().build(),
+		WebClient.builder().build()
+	);
 
 	private final AtomicInteger activeIncomingRequests = new AtomicInteger(0);
 
@@ -65,12 +60,12 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 				GET("/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
-					.body(processRequestBlocking(request), StudyResult.class)
+					.body(processRequestBlocking(parseRequest(request)), StudyResult.class)
 			).andRoute(
 				GET("/nio/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
-					.body(processRequestReactive(request), StudyResult.class)
+					.body(processRequestReactive(parseRequest(request)), StudyResult.class)
             ).andRoute(
                 GET("/status"),
                 request -> ok()
@@ -81,67 +76,46 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 			);
 	}
 
-    private Flux<AppStatusDto> applicationStatus() {
-	    return Flux.combineLatest(
-            Flux.interval(Duration.ofMillis(250)),
-            webClient.get()
-                .uri(URI.create(EXTERNAL_SERVICE + "/status"))
-                .accept(MediaType.TEXT_EVENT_STREAM)
-                .exchange()
-                .flatMapMany(response -> response.bodyToFlux(ExternalServiceStatusDto.class)),
-            (__, externalStatus) -> new AppStatusDto(
-                executor.getMaximumPoolSize(),
-                executor.getActiveCount(),
-                executor.getQueue().size(),
-                activeIncomingRequests.get(),
-                externalStatus.getActiveRequests()
-            ))
-            .doOnError(e -> log.warn("Error on status", e));
-    }
-
-    private Mono<StudyResult> processRequestBlocking(ServerRequest request) {
-		String study = request.pathVariable("study");
-		String region = request.pathVariable("region");
-		String timeout = request.queryParam("timeout").orElse(null);
-
+    private Mono<StudyResult> processRequestBlocking(StudyRequest request) {
 		return Mono.fromCallable(
 			() -> {
-				Instant start = now();
-				log.info("Starting external call");
-				HttpRequest req = HttpRequest.newBuilder()
-					.uri(externalServiceUri(study, region, timeout))
-					.build();
-
-				HttpResponse<String> response = httpClient
-					.send(req, HttpResponse.BodyHandlers.ofString());
-				log.info("External call finished in {}", between(start, now()));
-				ExternalStudyDto externalStudyDto = ExternalStudyDto.fromString(response.body());
-				return getFinalStudyResult(study, region, externalStudyDto);
+				ExternalStudyDto externalStudyDto = externalService.syncRequest(request);
+				return getFinalStudyResult(request.getStudy(), request.getRegion(), externalStudyDto);
 			})
 			.publishOn(ioScheduler)
 			.doOnSubscribe(s -> activeIncomingRequests.incrementAndGet())
 			.doFinally(s -> activeIncomingRequests.decrementAndGet());
 	}
 
-	private Mono<StudyResult> processRequestReactive(ServerRequest request) {
-		String study = request.pathVariable("study");
-		String region = request.pathVariable("region");
-		String timeout = request.queryParam("timeout").orElse(null);
-
-		return webClient
-			.get()
-			.uri(externalServiceUri(study, region, timeout))
-			.exchange()
-			.flatMap(rsp -> rsp.bodyToMono(String.class)
-				.map(ExternalStudyDto::fromString)
-				.map(external ->
-					getFinalStudyResult(study, region, external)))
+	private Mono<StudyResult> processRequestReactive(StudyRequest request) {
+		return externalService
+			.reqctiveRequest(request)
+			.map(external ->
+				getFinalStudyResult(request.getStudy(), request.getRegion(), external))
             .doOnSubscribe(s -> activeIncomingRequests.incrementAndGet())
             .doFinally(s -> activeIncomingRequests.decrementAndGet());
 	}
 
 	private StudyResult getFinalStudyResult(String study, String region, ExternalStudyDto externalStudyDto) {
-		return new StudyResult("blue", externalStudyDto.getValue(), region);
+		if ("uk-sync".equals(study) || "uk-async".equals(study)) {
+			return new StudyResult("blue", externalStudyDto.getValue(), null);
+		} else {
+			return new StudyResult("blue", externalStudyDto.getValue(), region);
+		}
+	}
+
+	private Flux<AppStatusDto> applicationStatus() {
+		return Flux.combineLatest(
+			Flux.interval(Duration.ofMillis(250)),
+			externalService.serviceStatus(),
+			(__, externalStatus) -> new AppStatusDto(
+				executor.getMaximumPoolSize(),
+				executor.getActiveCount(),
+				executor.getQueue().size(),
+				activeIncomingRequests.get(),
+				externalStatus.getActiveRequests()
+			))
+			.doOnError(e -> log.warn("Error on status", e));
 	}
 
 	@Override
@@ -154,15 +128,5 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 				executor.getMaximumPoolSize(),
 				executor.getQueue().size()))
 			.subscribe();
-	}
-
-	private URI externalServiceUri(String study, String region, String timeout) {
-		return URI.create(
-			EXTERNAL_SERVICE +
-				"/service/" +
-				study + "/" +
-				region +
-				(timeout != null ? "?timeout=" + timeout : "")
-		);
 	}
 }
