@@ -1,4 +1,4 @@
-const sample_data = {
+const gdp_data = {
     "af": "16.63",
     "al": "11.58",
     "dz": "158.97",
@@ -87,7 +87,6 @@ const sample_data = {
     "ke": "32.42",
     "ki": "0.15",
     "kr": "986.26",
-    "undefined": "5.73",
     "kw": "117.32",
     "kg": "4.44",
     "la": "6.34",
@@ -181,5 +180,6 @@ const sample_data = {
     "vn": "101.99",
     "ye": "30.02",
     "zm": "15.69",
-    "zw": "5.57"
+    "zw": "5.57",
+    "undefined": "5.73",
 };

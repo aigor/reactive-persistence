@@ -94,7 +94,10 @@ public class ExternalServiceApplication {
 		static {
 			Stream.of(
 				"uk-sync",
-				"uk-async"
+				"uk-async",
+				"world-gdp",
+				"world-pop",
+				"usa-districts-jdbc"
 			).forEach(study ->
 				studyData.put(study, ResourceBundle.getBundle(study)));
 		}
@@ -106,10 +109,10 @@ public class ExternalServiceApplication {
 		}
 
 		static StatisticsDto forExperiment(String study, String region) {
-			log.info("Experiment: {}, region: {}", study, region);
 			if (studyData.containsKey(study)) {
 				var studyData = StatisticsDto.studyData.get(study);
 				var temp = Double.parseDouble(studyData.getString(region));
+				log.info("Experiment: {}, region: {}, vale: {}", study, region, temp);
 				return new StatisticsDto(temp);
 			}
 			return random();

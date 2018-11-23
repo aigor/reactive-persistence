@@ -17,11 +17,16 @@
     <script type="text/javascript" src="js/jquery.vmap.js"></script>
     <script type="text/javascript" src="js/maps/jquery.vmap.world.js"></script>
     <script type="text/javascript" src="js/maps/jquery.vmap.europe.js"></script>
+    <script type="text/javascript" src="js/maps/continents/jquery.vmap.africa.js"></script>
     <script type="text/javascript" src="js/maps/jquery.vmap.ukraine.js"></script>
     <script type="text/javascript" src="js/maps/jquery.vmap.usa.js"></script>
     <script type="text/javascript" src="js/maps/jquery.vmap.usa.counties.js"></script>
     <script type="text/javascript" src="js/maps/jquery.vmap.usa.districts.js"></script>
     <!-- JQVMap -->
+
+    <!-- Data -->
+    <script type="text/javascript" src="js/gdp.js"></script>
+    <!-- Data -->
 
     <title>Reactive Persistence</title>
 </head>
@@ -30,11 +35,13 @@
 <div class="status-block" style="background-color: lightgray; padding: 0em 1em 1em 1em; margin: 0;">
     <div>
         <select id="scenario" onchange="selectScenario(this)">
-            <option value="uk-sync">Ukraine: weather (Sync)</option>
-            <option value="uk-async">Ukraine: weather (Async)</option>
-            <option value="world-gdp">World: GDP/pop (Mongo)</option>
-            <option value="usa-votes-jdbc">USA: 2016 votes (JDBC)</option>
-            <option value="usa-votes-r2dbc">USA: 2016 votes (R2DBC)</option>
+            <option value="uk-sync">Weather in Ukr 24.11 (Sync)</option>
+            <option value="uk-async">Weather in Ukr 27.11 (Async)</option>
+            <option value="world-gdp">World: GDP (Cassandra)</option>
+            <option value="world-pop">World: population (Mongo)</option>
+            <option value="europe-pop">Europe: population (Couchbase)</option>
+            <option value="usa-districts-jdbc">USA districts sales (JDBC)</option>
+            <option value="usa-districts-r2dbc">USA districts sales (R2DBC)</option>
         </select>
     </div>
     <div>
@@ -60,6 +67,7 @@
 
     var active_colors = { };
     var active_pins = { };
+    var active_data = { };
 
     var vMap = initVectorMap('uk-sync', 'ukraine_ua', false, timout, true);
 
@@ -78,8 +86,10 @@
             vMap = initVectorMap(newScenario, 'ukraine_ua', false, timout, false);
         } else if (newScenario === "uk-async") {
             vMap = initVectorMap(newScenario, 'ukraine_ua', true, timout, false);
-        } else if (newScenario === "usa-votes-jdbc" || newScenario === "usa-votes-r2dbc") {
+        } else if (newScenario === "usa-districts-jdbc" || newScenario === "usa-districts-r2dbc") {
             vMap = initVectorMap(newScenario, 'usa_districts_en', true, timout, false);
+        } else if (newScenario === "europe-pop") {
+            vMap = initVectorMap(newScenario, 'europe_en', true, timout, false);
         } else {
             vMap = initVectorMap(newScenario, 'world_en', true, timout, false);
         }
@@ -102,6 +112,16 @@
         vMap.vectorMap('set', 'colors', active_colors);
     }
 
+    function unsetRegionColor(code) {
+        delete active_colors[code];
+        vMap.vectorMap('set', 'colors', active_colors);
+    }
+
+    function setData(code, data) {
+        active_data[code] = data;
+        vMap.vectorMap('set', 'values', active_data);
+    }
+
     function setRegionPin(code, text) {
         active_pins[code] = text;
         vMap.vectorMap('placePins', active_pins, 'content');
@@ -110,6 +130,7 @@
     function initVectorMap(study, mapName, async, timeout, firstInit) {
         active_colors = { };
         active_pins = { };
+        active_data = { };
 
         let vMap = jQuery('#vmap');
 
@@ -134,8 +155,10 @@
 
             enableZoom: false,
             showTooltip: true,
-            //values: sample_data,
-            //scaleColors: ['#00AA00', '#FF0000'],
+
+            values: active_data,
+            scaleColors: ['#550000', '#ee0000'],
+
             normalizeFunction: 'linear',
 
             onRegionClick: function (element, code, region) {
@@ -152,6 +175,7 @@
                     const colorSchema = rsp['colorSchema'];
                     const colorValue = rsp['colorValue'];
 
+                    unsetRegionColor(code);
                     setRegionColorWithSchema(colorSchema, code, colorValue);
 
                     const pinValue = rsp['pinValue'];
@@ -179,12 +203,11 @@
                 const value = Number(colorValue * 10).toFixed(0);
                 finalColor = fullColorHex(255 - value, 50, 20);
             }
+            console.log(colorSchema, code, finalColor);
+            setRegionColor(code, finalColor);
         } else {
-            const value = 256 - Number(colorValue / 5).toFixed(0);
-            finalColor = fullColorHex(0, value, 0);
+            setData(code, colorValue);
         }
-        console.log(colorSchema, code, finalColor);
-        setRegionColor(code, finalColor);
     }
 
     function updateStatus(status) {

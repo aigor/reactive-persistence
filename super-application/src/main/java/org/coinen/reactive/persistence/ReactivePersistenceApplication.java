@@ -101,7 +101,8 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 			return new StudyResult("temperature", externalStudyDto.getValue(), null);
 		} else {
 			// TODO: Make some DB request
-			return new StudyResult("green", externalStudyDto.getValue(), region);
+			return new StudyResult("green", externalStudyDto.getValue(),
+				String.format("%3.1f", externalStudyDto.getValue()));
 		}
 	}
 
