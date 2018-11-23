@@ -1,11 +1,8 @@
-/**
- * Copyright (C) Zoomdata, Inc. 2012-2018. All rights reserved.
- */
 package org.coinen.reactive.persistence.external;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.coinen.reactive.persistence.StudyRequest;
+import org.coinen.reactive.persistence.model.StudyRequestDto;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -29,7 +26,7 @@ public class ExternalService {
     private final HttpClient httpClient;
     private final WebClient webClient;
 
-    public ExternalStudyDto syncRequest(StudyRequest request) throws IOException, InterruptedException {
+    public ExternalStudyDto syncRequest(StudyRequestDto request) throws IOException, InterruptedException {
         Instant start = now();
         log.info("Starting external call");
         HttpRequest req = HttpRequest.newBuilder()
@@ -42,7 +39,7 @@ public class ExternalService {
         return ExternalStudyDto.fromString(response.body());
     }
 
-    public Mono<ExternalStudyDto> reqctiveRequest(StudyRequest request) {
+    public Mono<ExternalStudyDto> reactiveRequest(StudyRequestDto request) {
         return Mono.from(
             webClient
                 .get()
@@ -54,15 +51,15 @@ public class ExternalService {
     }
 
 
-    public Flux<ExternalServiceStatusDto> serviceStatus() {
+    public Flux<ExternalServiceMetricsDto> serviceStatus() {
         return webClient.get()
             .uri(URI.create(EXTERNAL_SERVICE + "/status"))
             .accept(MediaType.TEXT_EVENT_STREAM)
             .exchange()
-            .flatMapMany(response -> response.bodyToFlux(ExternalServiceStatusDto.class));
+            .flatMapMany(response -> response.bodyToFlux(ExternalServiceMetricsDto.class));
     }
 
-    private URI externalServiceUri(StudyRequest request) {
+    private URI externalServiceUri(StudyRequestDto request) {
         return URI.create(
             EXTERNAL_SERVICE +
                 "/service/" +

@@ -97,7 +97,9 @@ public class ExternalServiceApplication {
 				"uk-async",
 				"world-gdp",
 				"world-pop",
-				"usa-districts-jdbc"
+				"usa-districts-jdbc",
+				"usa-districts-r2dbc",
+				"usa-districts-all-blocking"
 			).forEach(study ->
 				studyData.put(study, ResourceBundle.getBundle(study)));
 		}

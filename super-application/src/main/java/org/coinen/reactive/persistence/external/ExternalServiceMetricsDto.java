@@ -3,6 +3,6 @@ package org.coinen.reactive.persistence.external;
 import lombok.Data;
 
 @Data
-public class ExternalServiceStatusDto {
+public class ExternalServiceMetricsDto {
     private int activeRequests;
 }

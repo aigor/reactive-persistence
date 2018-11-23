@@ -3,7 +3,21 @@ server:
 logging:
   level:
     "org.coinen.reactive.persistence": "DEBUG"
+    "org.springframework.jdbc.core.JdbcTemplate": "DEBUG"
 
+
+
+# PostgreSQL DB hosts US districts sales data
+
+spring:
+  datasource:
+      url: "jdbc:postgresql://localhost:5432/application"
+      username: "postgres"
+      password: "postgres"
+      driver-class-name: "org.postgresql.Driver"
+
+
+# Management section --------------------
 
 #management:
 #  server:

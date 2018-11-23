@@ -30,7 +30,7 @@
 
     <title>Reactive Persistence</title>
 </head>
-<body style="margin: 0; font-family: Verdana; font-size: small; background-color: #a5bfdd;">
+<body style="margin: 0; font-family: Verdana; font-size: medium; background-color: #a5bfdd;">
 
 <div class="status-block" style="background-color: lightgray; padding: 0em 1em 1em 1em; margin: 0;">
     <div>
@@ -42,6 +42,7 @@
             <option value="europe-pop">Europe: population (Couchbase)</option>
             <option value="usa-districts-jdbc">USA districts sales (JDBC)</option>
             <option value="usa-districts-r2dbc">USA districts sales (R2DBC)</option>
+            <option value="usa-districts-all-blocking">USA districts sales (All blocking)</option>
         </select>
     </div>
     <div>
@@ -63,7 +64,7 @@
 </div>
 
 <script>
-    const timout = 500;
+    const timout = 1000;
 
     var active_colors = { };
     var active_pins = { };
@@ -88,6 +89,8 @@
             vMap = initVectorMap(newScenario, 'ukraine_ua', true, timout, false);
         } else if (newScenario === "usa-districts-jdbc" || newScenario === "usa-districts-r2dbc") {
             vMap = initVectorMap(newScenario, 'usa_districts_en', true, timout, false);
+        } else if (newScenario === "usa-districts-all-blocking") {
+            vMap = initVectorMap(newScenario, 'usa_districts_en', false, timout, false);
         } else if (newScenario === "europe-pop") {
             vMap = initVectorMap(newScenario, 'europe_en', true, timout, false);
         } else {
@@ -157,7 +160,7 @@
             showTooltip: true,
 
             values: active_data,
-            scaleColors: ['#550000', '#ee0000'],
+            scaleColors: ['#ee4477', '#550000'],
 
             normalizeFunction: 'linear',
 

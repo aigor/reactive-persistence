@@ -1,48 +1,63 @@
 package org.coinen.reactive.persistence;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.coinen.reactive.persistence.db.DatabaseFacade;
 import org.coinen.reactive.persistence.external.ExternalService;
 import org.coinen.reactive.persistence.external.ExternalStudyDto;
-import org.coinen.reactive.persistence.utils.AppSchedulers;
+import org.coinen.reactive.persistence.model.AppStatusDto;
+import org.coinen.reactive.persistence.model.StudyRequestDto;
+import org.coinen.reactive.persistence.model.StudyResultDto;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
-import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.coinen.reactive.persistence.utils.Utils.parseRequest;
+import static org.coinen.reactive.persistence.AppConfiguration.IO_WORKER_NAME;
+import static org.coinen.reactive.persistence.utils.MonitoringUtils.toAppStatus;
+import static org.coinen.reactive.persistence.utils.SerializationUtils.parseRequest;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.RouterFunctions.resources;
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
 
+
+// Done: Put data into Postgres
+// Done: Repository for loading data form JDBC Postgres
+// TODO: Repository for loading data form R2DBC Postgres
+// TODO: Put data into Cassandra
+// TODO: Repository for loading data form Cassandra
+// TODO: Put data into Mongo
+// TODO: Repository for loading data form Mongo
+// TODO: Dedicated ADBA example
+// TODO: Dedicated R2DBC example
+// TODO: Finish slides
+// TODO: UI to call for all states on hot key
+
+@RequiredArgsConstructor
 @Slf4j
 @SpringBootApplication
 public class ReactivePersistenceApplication implements CommandLineRunner {
-	private static final String IO_WORKER = "ioWorker";
 
-	private final ThreadPoolExecutor executor = AppSchedulers.newExecutor(IO_WORKER, 4);
-	private final Scheduler ioScheduler = Schedulers.fromExecutor(executor);
+	// Services
+	private final ThreadPoolExecutor executor;
+	private final Scheduler ioScheduler;
+	private final DatabaseFacade dbFacade;
+	private final ExternalService externalService;
 
-	private final ExternalService externalService = new ExternalService(
-		HttpClient.newBuilder().build(),
-		WebClient.builder().build()
-	);
-
-	private final AtomicInteger activeIncomingRequests = new AtomicInteger(0);
+	// Statistics
+	private final AtomicInteger activeRequests = new AtomicInteger(0);
 
 	public static void main(String[] args) {
 		SpringApplication.run(ReactivePersistenceApplication.class, args);
@@ -60,12 +75,16 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 				GET("/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
-					.body(processRequestBlocking(parseRequest(request)), StudyResult.class)
+					.body(
+						withMetrics(processRequestBlocking(parseRequest(request))),
+						StudyResultDto.class)
 			).andRoute(
 				GET("/nio/service/{study}/{region}"),
 				request -> ok()
 					.contentType(MediaType.APPLICATION_JSON)
-					.body(processRequestReactive(parseRequest(request)), StudyResult.class)
+					.body(
+						withMetrics(processRequestReactive(parseRequest(request))),
+						StudyResultDto.class)
             ).andRoute(
                 GET("/status"),
                 request -> ok()
@@ -76,56 +95,65 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 			);
 	}
 
-    private Mono<StudyResult> processRequestBlocking(StudyRequest request) {
-		return Mono.fromCallable(
-			() -> {
-				ExternalStudyDto externalStudyDto = externalService.syncRequest(request);
-				return getFinalStudyResult(request.getStudy(), request.getRegion(), externalStudyDto);
-			})
-			.publishOn(ioScheduler)
-			.doOnSubscribe(s -> activeIncomingRequests.incrementAndGet())
-			.doFinally(s -> activeIncomingRequests.decrementAndGet());
-	}
+	// --- Blocking handling ---------------------------------------------------
 
-	private Mono<StudyResult> processRequestReactive(StudyRequest request) {
-		return externalService
-			.reqctiveRequest(request)
-			.map(external ->
-				getFinalStudyResult(request.getStudy(), request.getRegion(), external))
-            .doOnSubscribe(s -> activeIncomingRequests.incrementAndGet())
-            .doFinally(s -> activeIncomingRequests.decrementAndGet());
-	}
-
-	private StudyResult getFinalStudyResult(String study, String region, ExternalStudyDto externalStudyDto) {
-		if ("uk-sync".equals(study) || "uk-async".equals(study)) {
-			return new StudyResult("temperature", externalStudyDto.getValue(), null);
+    private Mono<StudyResultDto> processRequestBlocking(StudyRequestDto studyRequest) {
+		if ("uk-sync".equals(studyRequest.getStudy()) || "uk-async".equals(studyRequest.getStudy())) {
+			return Mono.fromCallable(
+				() -> {
+					ExternalStudyDto externalStudyDto = externalService.syncRequest(studyRequest);
+					return StudyResultDto.temperature(externalStudyDto.getValue());
+				})
+				.publishOn(ioScheduler);
 		} else {
-			// TODO: Make some DB request
-			return new StudyResult("green", externalStudyDto.getValue(),
-				String.format("%3.1f", externalStudyDto.getValue()));
+			return Mono.zip(
+				Mono.fromCallable(() -> externalService.syncRequest(studyRequest))
+					.publishOn(ioScheduler),
+				Mono.fromCallable(() -> dbFacade.resolvePersistedData(studyRequest).block())
+					.publishOn(ioScheduler),
+				(external, persisted) ->
+					StudyResultDto.generic(external.getValue(), persisted)
+			);
 		}
 	}
 
+	// ---- Async handling -----------------------------------------------------
+
+	private Mono<StudyResultDto> processRequestReactive(StudyRequestDto studyRequest) {
+		if ("uk-sync".equals(studyRequest.getStudy()) || "uk-async".equals(studyRequest.getStudy())) {
+			return externalService.reactiveRequest(studyRequest)
+				.map(externalData -> StudyResultDto.temperature(externalData.getValue()));
+		} else {
+			return Mono.zip(
+				externalService.reactiveRequest(studyRequest),
+				dbFacade.resolvePersistedData(studyRequest),
+				(external, persisted) -> StudyResultDto.generic(external.getValue(), persisted)
+			);
+		}
+	}
+
+	// --- App's metrics -------------------------------------------------------
 	private Flux<AppStatusDto> applicationStatus() {
 		return Flux.combineLatest(
 			Flux.interval(Duration.ofMillis(250)),
 			externalService.serviceStatus(),
-			(__, externalStatus) -> new AppStatusDto(
-				executor.getMaximumPoolSize(),
-				executor.getActiveCount(),
-				executor.getQueue().size(),
-				activeIncomingRequests.get(),
-				externalStatus.getActiveRequests()
-			))
-			.doOnError(e -> log.warn("Error on status", e));
+			(__, externalStatus) ->
+				toAppStatus(executor, activeRequests.get(), externalStatus)
+		);
+	}
+
+	private Mono<StudyResultDto> withMetrics(Mono<StudyResultDto> stream) {
+		return stream
+			.doOnSubscribe(s -> activeRequests.incrementAndGet())
+			.doFinally(s -> activeRequests.decrementAndGet());
 	}
 
 	@Override
 	public void run(String... args) {
 		Flux.interval(Duration.ofSeconds(1))
 			.doOnEach(i -> log.debug("[{} status] active req: {}, run/max: {}/{}, queued tasks: {}",
-				IO_WORKER,
-				activeIncomingRequests.get(),
+				IO_WORKER_NAME,
+				activeRequests.get(),
 				executor.getActiveCount(),
 				executor.getMaximumPoolSize(),
 				executor.getQueue().size()))
