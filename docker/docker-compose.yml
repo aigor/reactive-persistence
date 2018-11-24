@@ -1,18 +1,15 @@
 version: '2.3'
 
 services:
-  postgres:
-    image: "postgres:11.1"
-    hostname: "postgres"
-    environment:
-      POSTGRES_DB: application
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+  cassandra:
+    image: "cassandra:3.11.3"
+    hostname: "cassandra"
     ports:
-      - 5432:5432
+      - 9042:9042
     volumes:
-      - "./postgres:/docker-entrypoint-initdb.d"
-    mem_limit: 512M
+      - "./cassandra/db-init.sh:/cassandra-init.sh"
+    command: "sh /cassandra-init.sh"
+    mem_limit: 3072M
 
   mongo:
     image: "mongo:4.0.4"
@@ -27,12 +24,26 @@ services:
       - "./mongo:/docker-entrypoint-initdb.d"
     mem_limit: 512M
 
-  cassandra:
-    image: "cassandra:3.11.3"
-    hostname: "cassandra"
+  couchbase:
+    image: "couchbase/server:community-5.0.1"
+    hostname: "couchbase"
     ports:
-      - 9042:9042
+      - 8091-8096:8091-8096
+      - 11210-11211:11210-11211
     volumes:
-      - "./cassandra/db-init.sh:/cassandra-init.sh"
-    command: "sh /cassandra-init.sh"
-    mem_limit: 3072M
+      - "./couchbase/configure.sh:/configure.sh"
+    command: "bash /configure.sh"
+    mem_limit: 1024M
+
+  postgres:
+    image: "postgres:11.1"
+    hostname: "postgres"
+    environment:
+      POSTGRES_DB: application
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - "./postgres:/docker-entrypoint-initdb.d"
+    mem_limit: 512M

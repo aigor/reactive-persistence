@@ -13,6 +13,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.jdbc.repository.config.EnableJdbcRepositories;
+import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
@@ -35,16 +37,20 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 
 // Done: Put data into Postgres
 // Done: Repository for loading data form JDBC Postgres
-// TODO: Repository for loading data form R2DBC Postgres
-// TODO: Put data into Cassandra
-// TODO: Repository for loading data form Cassandra
-// TODO: Put data into Mongo
-// TODO: Repository for loading data form Mongo
+// Done: Repository for loading data form R2DBC Postgres
+// Done: Put data into Cassandra
+// Done: Repository for loading data form Cassandra
+// Done: Put data into Mongo
+// Done: Repository for loading data form Mongo
+// Done: Put data into CouchBase
+// Done: Repository for loading data form CouchBase
 // TODO: Dedicated ADBA example
 // TODO: Dedicated R2DBC example
 // TODO: Finish slides
 // TODO: UI to call for all states on hot key
 
+@EnableJdbcRepositories("org.coinen.reactive.persistence.db.jdbc")
+@EnableR2dbcRepositories
 @RequiredArgsConstructor
 @Slf4j
 @SpringBootApplication
@@ -128,7 +134,7 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 				externalService.reactiveRequest(studyRequest),
 				dbFacade.resolvePersistedData(studyRequest),
 				(external, persisted) -> StudyResultDto.generic(external.getValue(), persisted)
-			);
+			).doOnError(e -> log.warn("Error:", e));
 		}
 	}
 
@@ -157,6 +163,7 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 				executor.getActiveCount(),
 				executor.getMaximumPoolSize(),
 				executor.getQueue().size()))
-			.subscribe();
+		//	.subscribe()
+		;
 	}
 }

@@ -20,7 +20,13 @@ public class StudyResultDto {
         return new StudyResultDto("temperature", colorValue);
     }
 
-    public static StudyResultDto generic(Double colorValue, Double pinValue) {
-        return new StudyResultDto("red", colorValue, format("%3.1f", pinValue));
+    public static StudyResultDto generic(Double colorValue, Object pinValue) {
+        return new StudyResultDto("red", colorValue, formatValue(pinValue));
+    }
+
+    private static String formatValue(Object pinValue) {
+        return (pinValue instanceof Double) ?
+            format("%3.1f", pinValue) :
+            pinValue.toString();
     }
 }

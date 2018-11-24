@@ -38,8 +38,8 @@
             <option value="uk-sync">Weather in Ukr 24.11 (Sync)</option>
             <option value="uk-async">Weather in Ukr 27.11 (Async)</option>
             <option value="world-gdp">World: GDP (Cassandra)</option>
-            <option value="world-pop">World: population (Mongo)</option>
-            <option value="europe-pop">Europe: population (Couchbase)</option>
+            <option value="europe-pop">Europe: population (Mongo)</option>
+            <option value="world-pop-dens">World: pop density (Couch)</option>
             <option value="usa-districts-jdbc">USA districts sales (JDBC)</option>
             <option value="usa-districts-r2dbc">USA districts sales (R2DBC)</option>
             <option value="usa-districts-all-blocking">USA districts sales (All blocking)</option>
@@ -54,8 +54,8 @@
         </div>
     </div>
     <div class="pool-queue">
-        <p>active req: <a id="active-req">0</a>, queued: <a id="pool-queue-size">0</a>,
-            ext service req: <a id="external-service-req">0</a></p>
+        <p>queue: <b><a id="pool-queue-size">0</a></b>, serving req: <a id="active-req">0</a>,
+            external req: <a id="external-service-req">0</a></p>
     </div>
 </div>
 
@@ -64,7 +64,9 @@
 </div>
 
 <script>
-    const timout = 1000;
+    const timout = 2000;
+
+    var all_available_regions = [];
 
     var active_colors = { };
     var active_pins = { };
@@ -163,6 +165,11 @@
             scaleColors: ['#ee4477', '#550000'],
 
             normalizeFunction: 'linear',
+
+            onLoad: function(event, map) {
+                // TODO: store all loaded regions & add a button
+                console.log(map);
+            },
 
             onRegionClick: function (element, code, region) {
                 console.log("Selected region: " + region);

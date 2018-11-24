@@ -25,9 +25,6 @@ import static java.time.Duration.ofMillis;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
 
-/**
- * TODO: Should return something useful, like temperature in a city
- */
 @Slf4j
 @SpringBootApplication
 public class ExternalServiceApplication {
@@ -52,14 +49,9 @@ public class ExternalServiceApplication {
 								.forExperiment(
 									request.pathVariable("study"),
 									request.pathVariable("region")))
-							.doOnSubscribe(__ -> {
-								activeRequests.incrementAndGet();
-								log.debug("Starting request processing");
-							})
-							.doFinally(__ -> {
-								activeRequests.decrementAndGet();
-								log.debug("Request processing finished");
-							}),
+							.doOnError(e -> log.warn("Error:", e))
+							.doOnSubscribe(__ -> activeRequests.incrementAndGet())
+							.doFinally(__ -> activeRequests.decrementAndGet()),
 						StatisticsDto.class)
 			).andRoute(
 				GET("/status"),
@@ -96,7 +88,8 @@ public class ExternalServiceApplication {
 				"uk-sync",
 				"uk-async",
 				"world-gdp",
-				"world-pop",
+				"europe-pop",
+				"world-pop-dens",
 				"usa-districts-jdbc",
 				"usa-districts-r2dbc",
 				"usa-districts-all-blocking"
