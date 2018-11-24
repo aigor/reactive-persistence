@@ -45,8 +45,8 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 // Done: Put data into CouchBase
 // Done: Repository for loading data form CouchBase
 // TODO: Dedicated ADBA example
-// TODO: Dedicated R2DBC example
-// TODO: Finish slides
+// TODO: Dedicated R2DBC example (fix configuration)
+// TODO: MongoDB transactions: Fix ports for mongo in docker-compose here (omit conflicts)!
 // TODO: UI to call for all states on hot key
 // TODO: Pictures for layers of Cassandra/Mongo/etc...
 
@@ -60,6 +60,7 @@ public class ReactivePersistenceApplication implements CommandLineRunner {
 	// Services
 	private final ThreadPoolExecutor executor;
 	private final Scheduler ioScheduler;
+
 	private final DatabaseFacade dbFacade;
 	private final ExternalService externalService;
 

@@ -9,8 +9,6 @@ logging:
     "org.springframework.data.couchbase": "DEBUG"
     "com.couchbase.client": "INFO"
 
-
-
 # Database configurations (Postgres, Mongo, Cassandra)
 
 spring:
@@ -37,19 +35,3 @@ couchbase:
     bucket: "bucket1"
     user: "Administrator"
     password: "password"
-
-
-
-# Management section --------------------
-
-#management:
-#  server:
-#    port: 8090
-#  endpoints:
-#    web:
-#      exposure.include: "*"
-#  endpoint:
-#    health:
-#      show-details: "always"
-#      cache:
-#        time-to-live: 10s

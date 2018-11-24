@@ -28,14 +28,13 @@ public class ExternalService {
 
     public ExternalStudyDto syncRequest(StudyRequestDto request) throws IOException, InterruptedException {
         Instant start = now();
-        log.info("Starting external call");
         HttpRequest req = HttpRequest.newBuilder()
             .uri(externalServiceUri(request))
             .build();
 
         HttpResponse<String> response = httpClient
             .send(req, HttpResponse.BodyHandlers.ofString());
-        log.info("External call finished in {}", between(start, now()));
+        log.debug("External HTTP call finished in {}", between(start, now()));
         return ExternalStudyDto.fromString(response.body());
     }
 
