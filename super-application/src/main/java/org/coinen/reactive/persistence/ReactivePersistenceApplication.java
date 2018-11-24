@@ -48,6 +48,7 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 // TODO: Dedicated R2DBC example
 // TODO: Finish slides
 // TODO: UI to call for all states on hot key
+// TODO: Pictures for layers of Cassandra/Mongo/etc...
 
 @EnableJdbcRepositories("org.coinen.reactive.persistence.db.jdbc")
 @EnableR2dbcRepositories

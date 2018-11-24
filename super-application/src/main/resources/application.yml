@@ -7,6 +7,7 @@ logging:
     "org.springframework.data.cassandra.core.cql.ReactiveCqlTemplate": "DEBUG"
     "org.springframework.data.mongodb.core.ReactiveMongoTemplate": "DEBUG"
     "org.springframework.data.couchbase": "DEBUG"
+    "com.couchbase.client": "INFO"
 
 
 
@@ -22,6 +23,7 @@ spring:
     cassandra:
       port: 9042
       keyspace-name: "reactive"
+      fetch-size: 13
     mongodb:
       username: "mongo"
       password: "mongo"

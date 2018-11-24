@@ -20,7 +20,8 @@ import static java.time.Instant.now;
 public class DatabaseFacade {
     private final Random rnd = new Random();
 
-    private final boolean batchedRequest = false;
+    // Changing Mongo latency
+    private final boolean batchedRequest = true;
     private final int latency = 2500;
 
     // IO scheduler for executing blocking requests
@@ -58,8 +59,8 @@ public class DatabaseFacade {
     private Mono<Object> worldPopDensityCouch(String region) {
         if (batchedRequest) {
             return worldPopDensityCouchbaseRepository
-                .findAll()
-                //.doOnNext(r -> log.debug(" [Mongo -> App]: {}", r))
+                .findByDensityLessThan10000()
+                .doOnNext(r -> log.debug(" [Couchbase -> App]: {}", r))
                 .filter(dto -> region.equals(dto.getId()))
                 .next()
                 .map(WorldPopDensityDto::getDensity);
