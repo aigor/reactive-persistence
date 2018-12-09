@@ -14,7 +14,9 @@ import org.coinen.reactive.persistence.utils.AppSchedulers;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.r2dbc.dialect.PostgresDialect;
 import org.springframework.data.r2dbc.function.DatabaseClient;
+import org.springframework.data.r2dbc.function.DefaultReactiveDataAccessStrategy;
 import org.springframework.data.r2dbc.repository.support.R2dbcRepositoryFactory;
 import org.springframework.data.relational.core.mapping.RelationalMappingContext;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -95,7 +97,9 @@ public class AppConfiguration {
     public R2dbcRepositoryFactory factory(DatabaseClient client) {
         var context = new RelationalMappingContext();
         context.afterPropertiesSet();
-        return new R2dbcRepositoryFactory(client, context);
+        DefaultReactiveDataAccessStrategy dataAccessStrategy =
+            new DefaultReactiveDataAccessStrategy(PostgresDialect.INSTANCE);
+        return new R2dbcRepositoryFactory(client, context, dataAccessStrategy);
     }
 
     @Bean

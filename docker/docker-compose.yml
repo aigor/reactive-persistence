@@ -8,8 +8,10 @@ services:
       - 9042:9042
     volumes:
       - "./cassandra/db-init.sh:/cassandra-init.sh"
+    environment:
+      JVM_OPTS: "-Xms512M -Xmx512M"
     command: "sh /cassandra-init.sh"
-    mem_limit: 3072M
+    mem_limit: 876M
 
   mongo:
     image: "mongo:4.0.4"
