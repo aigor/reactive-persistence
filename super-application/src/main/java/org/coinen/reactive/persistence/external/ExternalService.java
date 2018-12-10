@@ -21,8 +21,7 @@ import static java.time.Instant.now;
 @Slf4j
 @RequiredArgsConstructor
 public class ExternalService {
-    private static final String EXTERNAL_SERVICE = "http://localhost:9090";
-
+    private final String externalServiceLocation;
     private final HttpClient httpClient;
     private final WebClient webClient;
 
@@ -52,19 +51,18 @@ public class ExternalService {
 
     public Flux<ExternalServiceMetricsDto> serviceStatus() {
         return webClient.get()
-            .uri(URI.create(EXTERNAL_SERVICE + "/status"))
+            .uri(URI.create(externalServiceLocation + "/status"))
             .accept(MediaType.TEXT_EVENT_STREAM)
             .exchange()
             .flatMapMany(response -> response.bodyToFlux(ExternalServiceMetricsDto.class));
     }
 
     private URI externalServiceUri(StudyRequestDto request) {
-        return URI.create(
-            EXTERNAL_SERVICE +
-                "/service/" +
-                request.getStudy() + "/" +
-                request.getRegion() +
-                (request.getTimout() != null ? "?timeout=" + request.getTimout() : "")
-        );
+        String url = externalServiceLocation +
+            "/service/" +
+            request.getStudy() + "/" +
+            request.getRegion() +
+            (request.getTimout() != null ? "?timeout=" + request.getTimout() : "");
+        return URI.create(url);
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.r2dbc.dialect.PostgresDialect;
 import org.springframework.data.r2dbc.function.DatabaseClient;
 import org.springframework.data.r2dbc.function.DefaultReactiveDataAccessStrategy;
+import org.springframework.data.r2dbc.function.ReactiveDataAccessStrategy;
 import org.springframework.data.r2dbc.repository.support.R2dbcRepositoryFactory;
 import org.springframework.data.relational.core.mapping.RelationalMappingContext;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -30,13 +31,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Slf4j
 public class AppConfiguration {
     static final String IO_WORKER_NAME = "ioWorker";
-    private static final int IO_WORKER_SIZE = 4;
 
     // --- Services ------------------------------------------------------------
 
     @Bean
-    public ExternalService externalService(HttpClient httpClient, WebClient webClient) {
-        return new ExternalService(httpClient, webClient);
+    public ExternalService externalService(
+        @Value("${external.service.url}") String externalServiceUrl,
+        HttpClient httpClient,
+        WebClient webClient
+    ) {
+        return new ExternalService(externalServiceUrl, httpClient, webClient);
     }
 
     @Bean
@@ -94,12 +98,19 @@ public class AppConfiguration {
     }
 
     @Bean
-    public R2dbcRepositoryFactory factory(DatabaseClient client) {
+    public ReactiveDataAccessStrategy reactiveDataAccessStrategy() {
+        return new DefaultReactiveDataAccessStrategy(PostgresDialect.INSTANCE);
+    }
+
+    @Bean
+    public R2dbcRepositoryFactory factory(
+        DatabaseClient client,
+        ReactiveDataAccessStrategy reactiveDataAccessStrategy
+    ) {
         var context = new RelationalMappingContext();
         context.afterPropertiesSet();
-        DefaultReactiveDataAccessStrategy dataAccessStrategy =
-            new DefaultReactiveDataAccessStrategy(PostgresDialect.INSTANCE);
-        return new R2dbcRepositoryFactory(client, context, dataAccessStrategy);
+
+        return new R2dbcRepositoryFactory(client, context, reactiveDataAccessStrategy);
     }
 
     @Bean
@@ -110,8 +121,8 @@ public class AppConfiguration {
     // --- Workers, http clients -----------------------------------------------
 
     @Bean("ioWorker")
-    public ThreadPoolExecutor executor(){
-        return AppSchedulers.newExecutor(IO_WORKER_NAME, IO_WORKER_SIZE);
+    public ThreadPoolExecutor executor(@Value("${io.worker.size}") int ioWorkerSize){
+        return AppSchedulers.newExecutor(IO_WORKER_NAME, ioWorkerSize);
     }
 
     @Bean("ioScheduler")

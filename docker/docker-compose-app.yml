@@ -1,0 +1,28 @@
+version: '2.3'
+
+services:
+  external-service:
+    image: "reactive-persistence-external-service:0.0.1"
+    hostname: "external-service"
+    ports:
+      - 9090:9090
+    mem_limit: 512M
+
+  super-app:
+    image: "reactive-persistence-super-app:0.0.1"
+    hostname: "super-app"
+    environment:
+      IO_WORKER_SIZE: 8
+      EXTERNAL_SERVICE_URL: "http://external-service:9090"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/application"
+      SPRING_DATA_CASSANDRA_CONTACTPOINTS: "cassandra"
+      SPRING_DATA_MONGODB_HOST: "mongo"
+      COUCHBASE_CLUSTER_HOST: "couchbase"
+    ports:
+      - 8080:8080
+    mem_limit: 512M
+    depends_on:
+      - cassandra
+      - mongo
+      - couchbase
+      - postgres

@@ -3,10 +3,13 @@ buildscript {
 		springBootVersion = '2.1.0.RELEASE'
 	}
 	repositories {
-		mavenCentral()
+		// gradle-docker-plugin does not work with mavenCentral(), so using jcenter()
+		jcenter()
+		gradlePluginPortal()
 	}
 	dependencies {
 		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath 'com.bmuschko:gradle-docker-plugin:4.1.0'
 	}
 }
 
@@ -14,13 +17,15 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.bmuschko.docker-spring-boot-application'
 
 group = 'org.coinen.reactive.persistence'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = 11
 
 repositories {
-	mavenCentral()
+	// gradle-docker-plugin does not work with mavenCentral(), so using jcenter()
+	jcenter()
 	maven { url "https://repo.spring.io/snapshot" }
 	maven { url "https://repo.spring.io/milestone" }
 }
@@ -60,5 +65,13 @@ dependencies {
 dependencyManagement {
 	imports {
 		mavenBom "de.codecentric:spring-boot-admin-dependencies:${springBootAdminVersion}"
+	}
+}
+
+docker {
+	springBootApplication {
+		baseImage = 'openjdk:11.0.1-jre-slim'
+		ports = [8080]
+		tag = 'reactive-persistence-super-app:0.0.1'
 	}
 }
