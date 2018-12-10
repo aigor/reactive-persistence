@@ -27,16 +27,14 @@ UI = WebService =|
 
 ## The Flow of Examples
 
-* Blocking Web App (Spring WebMVC) [may skip]
-* Rx Web App (Spring WebFlux) [+]
-* Rx Web App with Blocking External Request (Http 11 Client) [+]
-* Rx Web App with Rx External Request (WebClient) [+]
+* Blocking Web App (Spring WebMVC)
+* Rx Web App (Spring WebFlux)
+* Rx Web App with Blocking External Request (Http 11 Client)
+* Rx Web App with Rx External Request (WebClient)
 * Rx Web App with Rx External Request and Reactive DB
   * Cassandra
   * MongoDB
-  * Couchbase [should skip]
+  * Couchbase
 * Rx Web App with Rx External Request and Postgres
   * JDBC wrapped in Thread Pool
-  * ADBA
   * R2DBC
-* Naked R2DBC example
