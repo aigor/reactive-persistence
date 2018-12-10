@@ -38,3 +38,10 @@ UI = WebService =|
 * Rx Web App with Rx External Request and Postgres
   * JDBC wrapped in Thread Pool
   * R2DBC
+  
+  
+### Code snippets
+
+```$bash
+sudo PATH=$JAVA_HOME/bin:$PATH ./gradlew dockerBuildImage
+```
