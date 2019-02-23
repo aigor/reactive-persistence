@@ -35,6 +35,7 @@
 <div class="status-block" style="background-color: lightgray; padding: 0em 1em 1em 1em; margin: 0;">
     <div>
         <select id="scenario" onchange="selectScenario(this)">
+            <option value="usa-districts-all-blocking">USA districts sales (All blocking)</option>
             <option value="uk-sync">Weather in Ukr 24/02/19 (Sync)</option>
             <option value="uk-async">Weather in Ukr 26/02/19 (Async)</option>
             <option value="world-gdp">World: GDP (Cassandra)</option>
@@ -42,7 +43,6 @@
             <option value="world-pop-dens">World: pop density (Couch)</option>
             <option value="usa-districts-jdbc">USA districts sales (JDBC)</option>
             <option value="usa-districts-r2dbc">USA districts sales (R2DBC)</option>
-            <option value="usa-districts-all-blocking">USA districts sales (All blocking)</option>
         </select>
     </div>
     <div>
@@ -72,7 +72,7 @@
     var active_pins = { };
     var active_data = { };
 
-    var vMap = initVectorMap('uk-sync', 'ukraine_ua', false, timout, true);
+    var vMap = initVectorMap('usa-districts-all-blocking', 'usa_districts_en', false, timout, true);
 
     function selectScenario(scenario) {
         // Available maps:

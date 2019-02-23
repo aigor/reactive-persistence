@@ -51,11 +51,15 @@ dependencies {
 	// DB Drivers
 	implementation('org.postgresql:postgresql')
 
+	// R2DBC
+	compile group: "io.r2dbc", name: "r2dbc-h2",     version: "1.0.0.M7"
+	compile group: "io.r2dbc", name: "r2dbc-client", version: "1.0.0.M7"
+
 	// Monitoring
 	implementation('de.codecentric:spring-boot-admin-starter-server')
 
 	// Compilation helper
-	compileOnly('org.projectlombok:lombok')
+	compile('org.projectlombok:lombok')
 
 	// Testsing
 	testImplementation('org.springframework.boot:spring-boot-starter-test')
