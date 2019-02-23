@@ -60,7 +60,7 @@ public class DatabaseFacade {
         if (batchedRequest) {
             return worldPopDensityCouchbaseRepository
                 .findByDensityLessThan10000()
-                .doOnNext(r -> log.debug(" [Couchbase -> App]: {}", r))
+                //.doOnNext(r -> log.debug(" [Couchbase -> App]: {}", r))
                 .filter(dto -> region.equals(dto.getId()))
                 .next()
                 .map(WorldPopDensityDto::getDensity);
@@ -111,9 +111,16 @@ public class DatabaseFacade {
     }
 
     private Mono<Object> usSalesR2Dbc(String region) {
+        // Can not use findById as Binding parameters is not supported yet for Postgres R2DBC
+
+        // return usSalesR2dbcRepository
+        //   .findById(region)
+        //   .map(UsSalesDataDto::getSales);
+
         // Used for batched & non-batched mode
         return usSalesR2dbcRepository
             .findAll()
+            //.doOnNext(r -> log.debug(" [R2DBC -> App]: {}", r))
             .filter(data -> region.equals(data.getCode()))
             .next()
             .map(UsSalesDataDto::getSales);

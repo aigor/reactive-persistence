@@ -2,7 +2,7 @@ package org.coinen.reactive.persistence;
 
 import lombok.RequiredArgsConstructor;
 
-// TODO: Use it somehow
+// TODO: Use this enum instead of hard-coded values
 @RequiredArgsConstructor
 public enum Studies {
     UKRAINE_WEATHR_4_SYNC("uk-sync"),

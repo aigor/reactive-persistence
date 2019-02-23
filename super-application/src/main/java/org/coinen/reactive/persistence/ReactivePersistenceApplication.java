@@ -35,21 +35,6 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
 
 
-// Done: Put data into Postgres
-// Done: Repository for loading data form JDBC Postgres
-// Done: Repository for loading data form R2DBC Postgres
-// Done: Put data into Cassandra
-// Done: Repository for loading data form Cassandra
-// Done: Put data into Mongo
-// Done: Repository for loading data form Mongo
-// Done: Put data into CouchBase
-// Done: Repository for loading data form CouchBase
-// TODO: Dedicated ADBA example
-// TODO: Dedicated R2DBC example (fix configuration)
-// TODO: MongoDB transactions: Fix ports for mongo in docker-compose here (omit conflicts)!
-// TODO: UI to call for all states on hot key
-// TODO: Pictures for layers of Cassandra/Mongo/etc...
-
 @EnableJdbcRepositories("org.coinen.reactive.persistence.db.jdbc")
 @EnableR2dbcRepositories
 @RequiredArgsConstructor
