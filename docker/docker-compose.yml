@@ -21,7 +21,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: mongo
       MONGO_INITDB_ROOT_PASSWORD: mongo
     ports:
-      - 27017:27017
+      - 37017:27017
     volumes:
       - "./mongo:/docker-entrypoint-initdb.d"
     mem_limit: 512M

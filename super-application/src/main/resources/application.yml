@@ -27,6 +27,7 @@ spring:
       password: "mongo"
       database: "application"
       host: "127.0.0.1"
+      port: 37017
 
 # External service configuration
 external:
